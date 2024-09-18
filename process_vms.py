@@ -52,7 +52,7 @@ def process_vms_files(folder_path):
     if dfs_job:
         df_job = pd.concat(dfs_job, ignore_index=True)
         df_job['External Job Posting Id'] = df_job['External Job Posting Id'].fillna('')
-        replace_patterns = ['(48 hours)', '(48hours)', '(48 hrs)', '(48hrs)', "'",'(48 HOURS)', '(48HOURS)', '(48 HRS)', '(48HRS)','(48 Hours)', '(48Hours)', '(48 Hrs)', '(48Hrs)', "''", '"']
+        replace_patterns = ['(48 hours)', '(48hours)', '(48 hrs)', '(48hrs)', "'",'(48 HOURS)', '(48HOURS)', '(48 HRS)', '(48HRS)','(48 Hours)', '(48Hours)', '(48 Hrs)', '(48Hrs)', "''", '"','()','(',')']
         for pattern in replace_patterns:
             df_job['External Job Posting Id'] = df_job['External Job Posting Id'].str.replace(pattern, '', regex=False)
         
@@ -60,7 +60,7 @@ def process_vms_files(folder_path):
         df_job.drop_duplicates(subset='External Job Posting Id', inplace=True)
         df_job = df_job[['External Job Posting Id', 'Job Status']]
     
-        output_file_path = folder_path.joinpath('merged', 'job.csv')
+        output_file_path = folder_path.joinpath('merged', 'job.csv')#-------------------job
         output_file_path.parent.mkdir(parents=True, exist_ok=True)
         df_job.to_csv(output_file_path, index=False)
         print(f"VMS processing done. Output saved to: {output_file_path}")  
@@ -90,6 +90,8 @@ def process_vms_files(folder_path):
         
     posting = posting[~posting[0].isin(dnt_ids)]
 
+    posting = posting.sort_values(by=0)
+
     output_file_path = folder_path.joinpath('result', 'Posting.csv')
     output_file_path.parent.mkdir(parents=True, exist_ok=True)
     posting.to_csv(output_file_path, index=False)
@@ -98,23 +100,38 @@ def process_vms_files(folder_path):
     status = merged_df.dropna(subset='Job Status')
     #status[0] = status[0].astype('int64')
     status = status[status['result'] == False ]
+
+    status= status.sort_values(by=0)
     
     output_file_path = folder_path.joinpath('result', 'Status.csv')
     output_file_path.parent.mkdir(parents=True, exist_ok=True)
     status.to_csv(output_file_path, index=False)
     print(f"VMS processing done. Output saved to: {output_file_path}")
+
+
+    df_job = df_job[df_job['External Job Posting Id'].astype(str).str.startswith(('1', '2'))]
+
+    output_file_path = folder_path.joinpath('merged', 'job_filter.csv')
+    output_file_path.parent.mkdir(parents=True, exist_ok=True)
+    df_job.to_csv(output_file_path, index=False)
+    print(f"VMS processing done. Output saved to: {output_file_path}")  
+    
+
+
         
     df_job = df_job[(df_job['External Job Posting Id'] != 'Joni Adams') & 
                     (df_job['External Job Posting Id'] != '') & 
                     (df_job['External Job Posting Id'].str.isnumeric())]
     
     df_job = df_job[df_job['Job Status'] != 'Extension']
-    
+
+   
     merged_df1 = pd.merge(df_job, df_vms, left_on='External Job Posting Id', right_on=0, how='outer')
     status1 = merged_df1[['External Job Posting Id', 'Job Status', 0]]
     status1 = status1.dropna(subset=['Job Status'])
     status1 = status1[status1[0].isna()]
-    
+    status1= status1.sort_values(by='External Job Posting Id')
+
     output_file_path = folder_path.joinpath('result', 'Status1.csv')
     output_file_path.parent.mkdir(parents=True, exist_ok=True)
     status1.to_csv(output_file_path, index=False)
